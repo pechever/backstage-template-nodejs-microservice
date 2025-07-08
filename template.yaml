@@ -1,0 +1,68 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: nodejs-microservice
+  title: Microservicio Node.js Completo
+  description: Crea un microservicio Node.js con CI/CD, Docker, K8s, y documentación.
+  tags:
+    - nodejs
+    - microservice
+    - fullstack
+spec:
+  owner: devops-team
+  type: service
+
+  parameters:
+    - title: Información del Proyecto
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Nombre del servicio
+          type: string
+        description:
+          title: Descripción
+          type: string
+        owner:
+          title: Propietario
+          type: string
+        repoUrl:
+          title: URL del repositorio (github.com/organizacion)
+          type: string
+
+  steps:
+    - id: fetch-template
+      name: Clonar plantilla base
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: ./workspace
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+
+    - id: publish
+      name: Publicar en GitHub
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.repoUrl }}/${{ parameters.name }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+        repoVisibility: public
+
+    - id: register
+      name: Registrar en el catálogo
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repositorio en GitHub
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Ver en catálogo
+        url: ${{ steps.register.output.catalogInfoUrl }}
